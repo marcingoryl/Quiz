@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import {TouchableOpacity, Text, Image, View, StyleSheet, ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Onboarding from './Onboarding.js';
 
 export function HomeScreen({navigation}) {
 
@@ -28,11 +30,11 @@ export function HomeScreen({navigation}) {
                   ))
                }
                 <View style = {styles.footer}>
-                  <Text style = {styles.text}>Get to know your ranking result</Text>
+                  <Text style = {styles.text} onPress={clearOnboarding}>Get to know your ranking result</Text>
                   <TouchableOpacity
                      style={styles.button}
                      onPress={() => navigation.navigate('Results')}>
-                     <Text style = {styles.text}>Check!</Text>
+                     <Text style = {styles.text} >Check!</Text>
                   </TouchableOpacity>
                </View>
             </ScrollView>
@@ -42,6 +44,14 @@ export function HomeScreen({navigation}) {
    }
 
 export default HomeScreen
+
+const clearOnboarding = async () => {
+   try {
+     await AsyncStorage.removeItem('@viewedOnboarding');
+   } catch (err) {
+ 
+   }
+ }
 
 const styles = StyleSheet.create ({
    item: {
