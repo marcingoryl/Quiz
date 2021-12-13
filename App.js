@@ -30,6 +30,27 @@ const Loading = () => {
   };
 
 const DrawerNavigator = () => {
+
+  const [isLoading, setLoading] = useState(true);
+  const [data, setData] = useState([]);
+
+  const getTests = async () => {
+     try {
+      const response = await fetch('https://tgryl.pl/quiz/tests');
+      const json = await response.json();
+      setData(json);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+ 
+  useEffect(() => {
+    getTests();
+  }, []);
+
+
 return (
   <Drawer.Navigator
   screenOptions={{
@@ -45,11 +66,12 @@ return (
    drawerContent={(props) => <CustomDrawer {...props} />}>
     <Drawer.Screen name="Home Page" component={HomeScreen}/>
     <Drawer.Screen name="Results" component={ResultsScreen} />
+    {
+      data.map(que => (
+        <Drawer.Screen name={que.name} component={Quiz} />
+      ))
+    }
     
-    <Drawer.Screen name="Title test #1" component={Quiz} />
-    <Drawer.Screen name="Title test #2" component={Quiz} />
-    <Drawer.Screen name="Title test #3" component={Quiz} />
-    <Drawer.Screen name="Title test #4" component={Quiz} />
     
   </Drawer.Navigator>
 );

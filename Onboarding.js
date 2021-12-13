@@ -4,9 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNRestart from 'react-native-restart';
 
 
-
-
-const Onboarding = ({navigation}) => {
+const Onboarding = () => {
   
     onPress = async () => {
         try{
@@ -41,10 +39,6 @@ const Onboarding = ({navigation}) => {
     );
   };
 
-  
-
-  
-    
   
   const styles = StyleSheet.create({
     baseText: {

@@ -1,31 +1,7 @@
-import React, { Component } from 'react';
-import { Text, View, Button, StatusBar , StyleSheet, SafeAreaView, RefreshControl} from 'react-native';
+import React, { Component, useEffect, useState } from 'react';
+import { Text, View, Button, StatusBar , StyleSheet, SafeAreaView, RefreshControl, ActivityIndicator} from 'react-native';
 import { FlatList, ScrollView } from 'react-native-gesture-handler';
 
-
-const restults = [
-  {
-    "nick": "Marcin",
-    "score": 3,
-    "total": 3,
-    "type": "wiedza ogólna",
-    "date": "2021-12-07"
-  },
- /* {
-    "nick": "Jarek",
-    "score": 12,
-    "total": 20,
-    "type": "biologia",
-    "date": "2019-11-22"
-  },
-  {
-    "nick": "Darek",
-    "score": 19,
-    "total": 20,
-    "type": "matematyka",
-    "date": "2019-10-21"
-  } */
-];
 
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
@@ -34,7 +10,27 @@ const wait = (timeout) => {
 
 export function ResultsScreen({ navigation }) {
 
+  const [isLoading, setLoading] = useState(true);
+  const [data, setData] = useState([]);
+  
+
   const [refreshing, setRefreshing] = React.useState(false);
+
+  const getResults = async () => {
+    try {
+     const response = await fetch('https://tgryl.pl/quiz/results');
+     const json = await response.json();
+     setData(json);
+   } catch (error) {
+     console.error(error);
+   } finally {
+     setLoading(false);
+   }
+ }
+
+ useEffect(() => {
+   getResults();
+ }, []);
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
@@ -47,18 +43,18 @@ export function ResultsScreen({ navigation }) {
     <Text style={styles.element}>Score: {item.score}</Text>
     <Text style={styles.element}>Total: {item.total}</Text>
     <Text style={styles.element}>Type: {item.type}</Text>
-    <Text style={styles.element}>Date: {item.date}</Text>
+    <Text style={styles.element}>Date: {item.createdOn}</Text>
   </View>
     
   );
 
     return (
       <SafeAreaView style={styles.container}>
-        
-      <FlatList
-        data={restults}
+         {isLoading ? <ActivityIndicator/> : (
+        <FlatList
+        data={data}
         renderItem={renderItem}
-        keyExtractor={item => item.score}
+        keyExtractor={item => item.id}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -66,7 +62,7 @@ export function ResultsScreen({ navigation }) {
           />
         }
       />
-      
+         )}
     </SafeAreaView>
     );
   }
@@ -84,8 +80,10 @@ export function ResultsScreen({ navigation }) {
     },
     title: {
       fontSize: 25,
+      fontFamily: "BakbakOne-Regular"
     },
     element: {
-      fontSize: 18
+      fontSize: 18,
+      fontFamily: "Poppins-ExtraLightItalic"
     },
   });

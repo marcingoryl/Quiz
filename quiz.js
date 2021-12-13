@@ -1,9 +1,6 @@
 import React, { Component, useEffect } from 'react';
-import { Text, View, Button, StyleSheet, TouchableOpacity} from 'react-native';
+import { Text, View, Button, StyleSheet, TouchableOpacity, ActivityIndicator} from 'react-native';
 import * as Progress from 'react-native-progress';
-
-
-
 
 
 const styles = StyleSheet.create({
@@ -29,7 +26,8 @@ const styles = StyleSheet.create({
       fontSize: 20,
       marginTop: 50,
       marginHorizontal: 15,
-      textAlign: "center"
+      textAlign: "center",
+      fontFamily: "BakbakOne-Regular"
   },
   borderView: {
     alignItems: "center",
@@ -38,14 +36,17 @@ const styles = StyleSheet.create({
   },
   buttonStyle: {
     width: 350,
-    height: 40,
+    
     justifyContent: "center",
+    flexWrap: 'wrap',
     alignItems: "center",
     backgroundColor: "#DDDDDD",
     marginVertical: 15,
     
+    
   },
 });
+
 
 
 export default class Quiz extends Component {
@@ -60,19 +61,47 @@ export default class Quiz extends Component {
       timer: 30,
       progress: 0,
       indeterminate: true,
+      data: [],
+      isLoading: true,
+      
     };
   } 
 
   onPress = (ind, isCorrect, points) => {
+   
     if(isCorrect){
-        points++
+      points++
     }
-
-    let i = this.state.ind;
-    if(i < this.tasks.length-1){
+       
+    let i = ind;
+    if(i < this.state.data.length-1){
         i++
+        this.setState({
+          ind: i
+        })
     }
-    else this.props.navigation.navigate('Results')
+    else{
+      this.setState({
+        ind: 0
+      })
+      
+
+      fetch('https://tgryl.pl/quiz/result', {
+        method: 'POST',
+        headers: {
+        Accept: 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+        nick: 'Test',
+        score: points,
+        total: this.state.ind+1,
+        type: this.props.route.params?.tgs
+  })
+});
+
+  this.props.navigation.navigate('Results')
+    } 
     
       this.setState({
           ind: i,
@@ -85,88 +114,25 @@ export default class Quiz extends Component {
       console.log('punkty: ',points)
   }
 
-  tasks = [
-    {
-      "question": "Który wódz po śmierci Gajusza Mariusza, prowadził wojnę domową z Sullą?",
-      "answers": [
-        {
-          "content": "LUCJUSZA CYNNA",
-          "isCorrect": true
-        },
-        {
-          "content": "JULIUSZ CEZAR",
-          "isCorrect": false
-        },
-        {
-          "content": "LUCJUSZ MURENA",
-          "isCorrect": false
-        },
-        {
-          "content": "MAREK KRASSUS",
-          "isCorrect": false
-        }
-      ],
-      "duration": 30
-    },
-    {
-        "question": "Ile jest 2+2",
-        "answers": [
-          {
-            "content": "2",
-            "isCorrect": false
-          },
-          {
-            "content": "4",
-            "isCorrect": true
-          },
-          {
-            "content": "3",
-            "isCorrect": false
-          },
-          {
-            "content": "8",
-            "isCorrect": false
-          }
-        ],
-        "duration": 30
-      }, 
-      {
-        "question": "Kto jest obecnym prezydentem Polski?",
-        "answers": [
-          {
-            "content": "Bronisław Komorowski",
-            "isCorrect": false
-          },
-          {
-            "content": "Lech Wałęsa",
-            "isCorrect": false
-          },
-          {
-            "content": "Aleksander Kwaśniewski",
-            "isCorrect": false
-          },
-          {
-            "content": "Andrzej Duda",
-            "isCorrect": true
-          }
-        ],
-        "duration": 30
-      }, 
-  ]
-
 
   componentDidMount() {
+    this.getQuestion();
+   
+    this.setState({ indeterminate: true });
     this.interval = setInterval(
         () => this.setState((prevState)=> ({ timer: prevState.timer - 1 })),
         1000
       );
     this.animate();
+    
   }
   
   componentDidUpdate(){
     if(this.state.timer === 0){ 
       clearInterval(this.interval);
+      
     }
+    
   }
   
   componentWillUnmount(){
@@ -189,22 +155,41 @@ export default class Quiz extends Component {
     
   }
 
+   async getQuestion() {
+    try {
+      const response = await fetch('https://tgryl.pl/quiz/test/'+ this.props.route.params?.link);
+      const json = await response.json();
+      this.setState({ data: json.tasks });
+    } catch (error) {
+      console.log(error);
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  } 
+
+  
+
   render() {
 
+    const { data, isLoading } = this.state;
+    
 
     return (
       
         <View>
+          
         <View
           style={{
           borderBottomColor: 'black',
           borderBottomWidth: 1,
           }}
         />
+            {isLoading ? <ActivityIndicator/> : (
         <View style={styles.numOfQuestTime}>
-          <Text style={styles.textStyle}>Question {this.state.ind+1} of {this.tasks.length}</Text>
+          <Text style={styles.textStyle}>Question: {this.state.ind+1} of {data.length}</Text>
           <Text style = {styles.timeStyle}>Time: {this.state.timer} sec</Text>
         </View>
+            )}
         <View style = {{alignItems: "center", marginTop: 50}}>
         <Progress.Bar
           style={styles.progress}
@@ -212,20 +197,21 @@ export default class Quiz extends Component {
           indeterminate={this.state.indeterminate}
         />
         </View>
-        <Text style = {styles.questionStyle}>{this.tasks[this.state.ind].question}</Text>
+        <Text style = {styles.questionStyle}>{data[this.state.ind]?.question}</Text>
         <View style = {styles.borderView}>
         
-         {this.tasks[this.state.ind].answers.map((item, index) => (
+         {data[this.state.ind]?.answers.map((item, index) => (
                 <TouchableOpacity
                 key = {index}
                 style={styles.buttonStyle}
                 onPress={() => this.onPress(this.state.ind, item.isCorrect, this.state.points)}
                 >
-                <Text style = {{fontSize: 18}}>{item.content}</Text>
+                <Text style = {{fontSize: 18, fontFamily: "Poppins-Light"}}>{item.content}</Text>
               </TouchableOpacity>
          ))}
          
         </View>
+           
       </View>
        
       
