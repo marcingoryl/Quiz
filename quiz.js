@@ -1,7 +1,8 @@
 import React, { Component, useEffect } from 'react';
 import { Text, View, Button, StyleSheet, TouchableOpacity, ActivityIndicator} from 'react-native';
 import * as Progress from 'react-native-progress';
-
+import SQLite from 'react-native-sqlite-2'
+import NetInfo from "@react-native-community/netinfo";
 
 const styles = StyleSheet.create({
   
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
   },
 });
 
-
+const _ = require("lodash");
 
 export default class Quiz extends Component {
 
@@ -63,6 +64,7 @@ export default class Quiz extends Component {
       indeterminate: true,
       data: [],
       isLoading: true,
+      json: [],
       
     };
   } 
@@ -78,6 +80,7 @@ export default class Quiz extends Component {
         i++
         this.setState({
           ind: i
+          
         })
     }
     else{
@@ -116,7 +119,19 @@ export default class Quiz extends Component {
 
 
   componentDidMount() {
+    NetInfo.fetch().then(state => {
+      if(state.isConnected){
+         this.getQuestion()
+         this.saveToDB()
+      }else 
+      {
+         getFromDB()
+         console.log("Brak połączenia z Internetem.")
+      }
+
+});
     this.getQuestion();
+    
    
     this.setState({ indeterminate: true });
     this.interval = setInterval(
@@ -155,11 +170,42 @@ export default class Quiz extends Component {
     
   }
 
+  saveToDB(){
+    const db = SQLite.openDatabase('md.db', '1.0', '', 1)
+    db.transaction(function(txn) {
+      txn.executeSql('DROP TABLE IF EXISTS Details', [])
+      txn.executeSql(
+        'CREATE TABLE IF NOT EXISTS Details(id TEXT)',
+        []
+  )
+
+  txn.executeSql('INSERT INTO Details (id) VALUES (:id)', [JSON.stringify(this.json)])
+
+      }) 
+  }
+
+  getFromDB(){
+    const db = SQLite.openDatabase('md.db', '1.0', '', 1)
+    db.transaction(function(txn) {
+      const query = 'SELECT * FROM `details`';
+      txn.executeSql(query, [], function(tx, res) {
+        const x = res.rows.item(0).id
+        z = JSON.parse(x)
+        //console.log(z.tasks)
+        //this.setState({data: z.tasks})
+        })
+        this.setState({data: z.tasks})
+    })
+
+  }
+        
+
    async getQuestion() {
     try {
       const response = await fetch('https://tgryl.pl/quiz/test/'+ this.props.route.params?.link);
       const json = await response.json();
-      this.setState({ data: json.tasks });
+      this.setState({ data: _.shuffle(json.tasks)});
+
     } catch (error) {
       console.log(error);
     } finally {
@@ -167,11 +213,10 @@ export default class Quiz extends Component {
     }
   } 
 
-  
-
   render() {
 
     const { data, isLoading } = this.state;
+    
     
 
     return (

@@ -1,7 +1,7 @@
 import React, { Component, useEffect, useState } from 'react';
 import { Text, View, Button, StatusBar , StyleSheet, SafeAreaView, RefreshControl, ActivityIndicator} from 'react-native';
 import { FlatList, ScrollView } from 'react-native-gesture-handler';
-
+import NetInfo from "@react-native-community/netinfo";
 
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
@@ -29,7 +29,16 @@ export function ResultsScreen({ navigation }) {
  }
 
  useEffect(() => {
-   getResults();
+  NetInfo.fetch().then(state => {
+    if(state.isConnected){
+       getResults()
+       
+    }else 
+    {
+       console.log("Brak połączenia z Internetem.")
+    }
+
+});
  }, []);
 
   const onRefresh = React.useCallback(() => {

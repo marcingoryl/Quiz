@@ -1,27 +1,72 @@
 import React, { Component, useState, useEffect } from 'react';
 import {TouchableOpacity, Text, Image, View, StyleSheet, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SQLite from 'react-native-sqlite-2'
+import NetInfo from "@react-native-community/netinfo";
+
 
 
 export function HomeScreen({navigation}) {
 
    const [isLoading, setLoading] = useState(true);
    const [data, setData] = useState([]);
+   const[json, setJson] = useState([]);
+   const _ = require("lodash");
 
    const getTests = async () => {
       try {
        const response = await fetch('https://tgryl.pl/quiz/tests');
        const json = await response.json();
-       setData(json);
+       setJson(json)
+       setData(_.shuffle(json));
      } catch (error) {
        console.error(error);
      } finally {
        setLoading(false);
      }
    }
-  
+
+   const saveToDB = () => {
+      const db = SQLite.openDatabase('test.db', '1.0', '', 1)
+
+      db.transaction(function(txn) {
+         txn.executeSql('DROP TABLE IF EXISTS Tests', [])
+         txn.executeSql(
+           'CREATE TABLE IF NOT EXISTS Tests(id TEXT)',
+           []
+     )
+
+     txn.executeSql('INSERT INTO Tests (id) VALUES (:id)', [JSON.stringify(json)])
+
+         })
+   }
+
+   const getQueFromDB = () => {
+      const db = SQLite.openDatabase('md.db', '1.0', '', 1)
+      db.transaction(function(txn) {
+         const query = 'SELECT * FROM `tests`';
+         txn.executeSql(query, [], function(tx, res) {
+           const x = res.rows.item(0).id
+           console.log(JSON.parse(x)[0])
+           setData(JSON.parse(x))
+           })
+
+      })
+   }
+
    useEffect(() => {
-     getTests();
+      NetInfo.fetch().then(state => {
+        if(state.isConnected){
+           getTests()
+           saveToDB()
+        }else 
+        {
+           getQueFromDB()
+           console.log("Brak połączenia z Internetem.")
+        }
+  
+});
+     
    }, []);
 
       return (
